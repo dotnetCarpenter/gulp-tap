@@ -25,7 +25,7 @@ module.exports = (lambda) ->
     #   t.through coffee, [{bare: true}]
     ###
     through: (filter, args) ->
-      if filter.__tapId
+      if filter.__tapId and filter.__tapId.match(/(?:@)(.*)/)[1] is args.join("")
         stream = cache[filter.__tapId]
         cache[filter.__tapId] = null unless stream
 
@@ -39,7 +39,7 @@ module.exports = (lambda) ->
         stream.on "error", (err) ->
           tapStream.emit "error", err
 
-        filter.__tapId = ""+id
+        filter.__tapId = ""+id+"@"+args.join("")
         cache[filter.__tapId] = stream
         id += 1
         stream.pipe tapStream
@@ -55,4 +55,3 @@ module.exports = (lambda) ->
     this.emit('data', inst.file) unless obj instanceof baseStream
 
   return ES.through(modifyFile)
-

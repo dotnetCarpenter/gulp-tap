@@ -34,6 +34,9 @@ module.exports = (lambda) ->
 
     # if user returned a stream
     # passthrough when the stream is ended
-    if obj instanceof baseStream then this.emit('end', => this.emit('data', inst.file)) else this.emit('data', inst.file)
+    if obj instanceof baseStream
+      obj.on('end', => this.emit('data', inst.file))
+    else
+      this.emit('data', inst.file)
 
   return ES.through(modifyFile, ->)

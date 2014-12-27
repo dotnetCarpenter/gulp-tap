@@ -3,11 +3,23 @@ path  = require 'path'
 gulp  = require 'gulp'
 tap   = require '../lib/tap'
 
+deleteDirectory = (p) ->
+  if fs.existsSync p
+    fs.readdirSync(p).forEach (file) ->
+      curP = (p + "/" + file)
+      if fs.lstatSync(curP).isDirectory()
+        deleteDirectory curP
+      else
+        fs.unlinkSync curP
+    fs.rmdirSync p
+
 exports.tapTest =
 
-#  setUp: (callback) ->
-#    @calculator = new Calculator
-#    callback()
+  tearDown: (callback) ->
+    deleteDirectory "assets"
+    deleteDirectory "scripts"
+  #  deleteDirectory "sass"
+    callback()
 
   'gulp-tap can change dest in the middle of stream': (test) ->
     destinations =
@@ -21,7 +33,7 @@ exports.tapTest =
     fixturePath = getPath "tests/fixtures/"
 
     fs.readdir fixturePath, (err, files) ->
-      test.expect 3
+      test.expect 2
       if err
         test.ok no, "Can not read fixtures"
         test.done(err)
@@ -29,21 +41,23 @@ exports.tapTest =
       gulp.src files.map (p) -> (fixturePath + "/" + p)
         .pipe tap where
         .on "end", ->
-          test.ok !fs.existsSync getPath "sass/s.scss", "sass file"
-          test.ok !fs.existsSync getPath "assets/images/img.png", "image file"
-          test.ok !fs.existsSync getPath "scripts/js.js", "js file"
+          test.ok fs.existsSync getPath "assets/images/img.png"
+          test.ok fs.existsSync getPath "scripts/js.js"
+    #      test.ok fs.existsSync getPath "sass/s.scss"
           test.done()
         .on "error", (err) -> test.done(err)
 
     where = (file, t) ->
       match = (p) ->
-        ext = (path.extname p).substr 1 # remove leading "."
+        ext = (path.extname p)
+          .substr 1 # remove leading "."
         if( ext in ["jpg", "png", "svg", "gif"] )
           ext = "img"
-        [destinations[ext] or null]
+        destinations[ext] or false
 
-      destPath = (match file.path)
-        .filter (p) -> p isnt null
+      destPath = match file.path
 
-      if destPath.length
-        t.through gulp.dest, destPath
+    #  console.log "destPath", destPath, file.path
+
+      if destPath
+        t.through gulp.dest, [destPath]

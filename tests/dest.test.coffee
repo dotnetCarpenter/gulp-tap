@@ -1,7 +1,7 @@
 fs    = require 'fs'
 path  = require 'path'
 gulp  = require 'gulp'
-tap   = require '../lib/tap'
+tap   = require '../src/tap'
 
 deleteDirectory = (p) ->
   if fs.existsSync p
@@ -13,15 +13,21 @@ deleteDirectory = (p) ->
         fs.unlinkSync curP
     fs.rmdirSync p
 
+clean = (callback) ->
+  deleteDirectory "assets"
+  deleteDirectory "scripts"
+  deleteDirectory "sass"
+  callback()
+
+
 exports.tapTest =
 
-  tearDown: (callback) ->
-#    deleteDirectory "assets"
-#    deleteDirectory "scripts"
-  #  deleteDirectory "sass"
-    callback()
+  setUp: clean
+  tearDown: clean
 
   'gulp-tap can change dest in the middle of stream': (test) ->
+    test.expect 3
+
     destinations =
       "scss": "sass"
       "js":   "scripts"
@@ -33,19 +39,21 @@ exports.tapTest =
     fixturePath = getPath "tests/fixtures/"
 
     fs.readdir fixturePath, (err, files) ->
-      test.expect 2
       if err
-        test.ok no, "Can not read fixtures"
-        test.done(err)
+        console.trace("Can not read fixtures from " + fixturePath)
+        test.done()
 
       gulp.src files.map (p) -> (fixturePath + "/" + p)
         .pipe tap where
-        .on "end", ->
+        .on "end", -> setTimeout -> # give gulp.dest a chance to write the files
           test.ok fs.existsSync getPath "assets/images/img.png"
           test.ok fs.existsSync getPath "scripts/js.js"
-    #      test.ok fs.existsSync getPath "sass/s.scss"
+          test.ok fs.existsSync getPath "sass/s.scss"
           test.done()
-        .on "error", (err) -> test.done(err)
+        , 500
+        .on "error", (err) ->
+          console.trace(err)
+          test.done()
 
     where = (file, t) ->
       match = (p) ->
@@ -57,7 +65,8 @@ exports.tapTest =
 
       destPath = match file.path
 
-    #  console.log "destPath", destPath, file.path
+      # for debugging
+      # console.log "destPath", destPath, file.path
 
       if destPath
         t.through gulp.dest, [destPath]

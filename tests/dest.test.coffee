@@ -16,8 +16,8 @@ deleteDirectory = (p) ->
 exports.tapTest =
 
   tearDown: (callback) ->
-    deleteDirectory "assets"
-    deleteDirectory "scripts"
+#    deleteDirectory "assets"
+#    deleteDirectory "scripts"
   #  deleteDirectory "sass"
     callback()
 
